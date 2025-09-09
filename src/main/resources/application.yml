@@ -1,22 +1,46 @@
 server:
-  port: ${PORT:0}   # Railway asigna puerto automáticamente
+  port: ${PORT:8080}   # Railway asigna dinámicamente el puerto
 
 spring:
   application:
     name: ms-gateway
-
-eureka:
-  client:
-    service-url:
-      defaultZone: https://${RAILWAY_PUBLIC_DOMAIN:ms-eureka.up.railway.app}/eureka/
-    register-with-eureka: true
-    fetch-registry: true
-  instance:
-    instance-id: ${spring.application.name}:${random.value}
-    prefer-ip-address: false
-
   cloud:
     gateway:
       discovery:
         locator:
-          enabled: true    # Habilita rutas automáticas vía Eureka
+          enabled: true
+          lower-case-service-id: true
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: ${ALLOWED_ORIGINS:*}
+            allowedHeaders: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+
+eureka:
+  instance:
+    prefer-ip-address: false
+    hostname: ${RAILWAY_PUBLIC_DOMAIN:ms-gateway.up.railway.app}  # URL pública del Gateway
+    instance-id: ${spring.application.name}:${random.value}        # ID único por contenedor
+
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_URL:http://ms-eureka.up.railway.app/eureka}  # URL pública de Eureka
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'   # Actuator y health checks disponibles
+  endpoint:
+    gateway:
+      enabled: ${ROUTE_TABLES_ENABLED:true}
